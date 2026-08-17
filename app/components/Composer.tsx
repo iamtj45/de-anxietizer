@@ -261,7 +261,6 @@ export function Composer() {
 
   const words = result ? result.message.trim().split(/\s+/).length : 0;
   const cap = CAP[options.channel];
-  const openBlanks = result ? result.blanks.filter((b) => !fills[b.slice(1, -1).toLowerCase()]).length : 0;
   const cut = result?.extraction.riskItems.filter((r) => r.kind === "insult") ?? [];
   const kept = result
     ? Object.values(result.extraction.entities).flat().concat(result.extraction.entities.counts)
@@ -522,18 +521,6 @@ export function Composer() {
                     <span>{[...new Set(kept)].join(" · ")}</span>
                   </div>
                 ) : null}
-                <div className="rline">
-                  <span className="rtag">You fill</span>
-                  <span>
-                    {openBlanks === 0
-                      ? "nothing — it invented no facts"
-                      : `${openBlanks} blank${openBlanks === 1 ? "" : "s"} — it wouldn't guess a date or a name`}
-                  </span>
-                </div>
-                <div className="rline">
-                  <span className="rtag">Attempts</span>
-                  <span>{result.attempts} pass{result.attempts === 1 ? "" : "es"} through the guardrails</span>
-                </div>
               </div>
             </div>
           )}
