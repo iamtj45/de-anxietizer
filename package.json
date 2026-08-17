@@ -1,0 +1,30 @@
+{
+  "name": "de-anxietizer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Turns a raw vent into a sendable message without inventing facts or spending your leverage.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx src/eval/run.ts",
+    "trace": "tsx src/trace.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.5"
+  },
+  "dependencies": {
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

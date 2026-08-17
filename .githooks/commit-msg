@@ -1,0 +1,20 @@
+#!/bin/sh
+# Strip machine attribution from commit messages.
+#
+# Belt and braces: policy lives in the project conventions, this enforces it
+# regardless of who or what writes the commit. Removes co-author trailers,
+# "generated with" footers, and robot-emoji lines.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+
+msg="$1"
+[ -f "$msg" ] || exit 0
+
+tmp="$msg.strip"
+grep -viE '^[[:space:]]*(co-authored-by:|generated with|🤖)' "$msg" > "$tmp"
+
+# Collapse any trailing blank lines the removal left behind.
+awk 'NF {p = NR} {l[NR] = $0} END {for (i = 1; i <= p; i++) print l[i]}' "$tmp" > "$msg"
+rm -f "$tmp"
+
+exit 0
