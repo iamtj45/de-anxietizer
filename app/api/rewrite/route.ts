@@ -88,16 +88,33 @@ export async function POST(req: Request): Promise<Response> {
       // Never surface the upstream body — it can echo back the request.
       console.error("[rewrite] model error", err.status, err.message);
 
-      // No status means it failed before any request went out — a config
-      // problem, not a transient one. "Try again" would be bad advice, so
-      // say the real thing while developing.
-      if (err.status === undefined && process.env.NODE_ENV !== "production") {
-        return bad(err.message, 500);
+      // Misconfiguration is not a secret, and "try again" is useless advice
+      // for it. Naming the missing variable is what turns a dead deployment
+      // into a two-minute fix.
+      if (!process.env.GROQ_API_KEY) {
+        return bad(
+          "The server has no GROQ_API_KEY. Add it in Vercel under " +
+            "Settings → Environment Variables, then redeploy.",
+          500,
+        );
+      }
+      if (err.status === 404) {
+        return bad(
+          `The model "${process.env.GROQ_MODEL ?? "(unset)"}" was not found. ` +
+            `Check GROQ_MODEL against console.groq.com/docs/models.`,
+          502,
+        );
+      }
+      if (err.status === 401 || err.status === 403) {
+        return bad("The API key was rejected. Check GROQ_API_KEY is current.", 502);
+      }
+      if (err.status === 429) {
+        return bad("The model is rate limited right now. Try again in a moment.", 502);
       }
       return bad(
-        err.status === 429
-          ? "The model is rate limited right now. Try again in a moment."
-          : "The model call failed. Try again.",
+        process.env.NODE_ENV === "production"
+          ? "The model call failed. Try again."
+          : err.message,
         502,
       );
     }
