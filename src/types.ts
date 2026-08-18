@@ -142,9 +142,41 @@ export function countWords(s: string): number {
  * `[order-number]` as readily as `[date]`. Matching only `[a-z_]+` meant those
  * were invisible: the UI showed no blank to fill and the eval reported the
  * model had invented a fact when it had actually asked for one.
+ *
+ * The variants below are built from one source so they cannot drift apart —
+ * the UI needs to split on slots and test single tokens, and a copy of this
+ * pattern living in the component is how `[new date]` went missing the first
+ * time.
  */
-export const BLANK_RE = /\[[a-z][a-z_ -]{0,24}\]/gi;
+const BLANK_BODY = String.raw`\[[a-z][a-z_ -]{0,24}\]`;
+
+export const BLANK_RE = new RegExp(BLANK_BODY, "gi");
+
+/** Capturing, so `String.split` keeps the slots as parts of their own. */
+export const BLANK_SPLIT_RE = new RegExp(`(${BLANK_BODY})`, "gi");
+
+/** Anchored and non-global — safe to `.test()` one candidate token with. */
+export const BLANK_EXACT_RE = new RegExp(`^${BLANK_BODY}$`, "i");
 
 export function stripBlanks(s: string): string {
   return s.replace(BLANK_RE, " ");
 }
+
+/** Does this text still carry an unfilled slot? */
+export function hasBlank(s: string): boolean {
+  // `.match` rather than `.test`: BLANK_RE is global, and a global regex
+  // carries `lastIndex` between `.test()` calls.
+  return s.match(BLANK_RE) !== null;
+}
+
+/** The slot name inside the brackets, lowercased. `[New Date]` → `new date`. */
+export function blankKey(slot: string): string {
+  return slot.slice(1, -1).toLowerCase();
+}
+
+/**
+ * How many prior messages a thread carries. Beyond a handful, a thread is a
+ * dispute that needs a solicitor, not an app. Enforced on both sides: the UI
+ * trims as it saves, the route caps what it trusts.
+ */
+export const MAX_THREAD = 6;

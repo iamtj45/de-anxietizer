@@ -22,7 +22,7 @@ import { subjectPresent } from "./subjectPresent";
 export const CHECKS: Check[] = [
   entitySubset,
   riskAccounted,
-   subjectPresent,
+  subjectPresent,
   noNewCommitment,
   noApology,
   ctaPresent,
@@ -55,5 +55,5 @@ export {
   noApology,
   noNewCommitment,
   riskAccounted,
-    subjectPresent,
+  subjectPresent,
 };

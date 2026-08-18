@@ -1,6 +1,7 @@
 import { GroqAdapter } from "@/model/groq";
 import { ModelError } from "@/model/adapter";
 import { rewrite } from "@/pipeline";
+import { MAX_THREAD } from "@/types";
 import type {
   Channel, Firmness, Intent, PriorMessage, Recipient, RewriteOptions,
 } from "@/types";
@@ -16,8 +17,6 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_VENT = 4000;
-/** Beyond a handful, a thread is a dispute that needs a solicitor, not an app. */
-const MAX_THREAD = 6;
 
 const CHANNELS: Channel[] = ["text", "chat", "email"];
 const FIRMNESS: Firmness[] = ["soft", "level", "firm"];

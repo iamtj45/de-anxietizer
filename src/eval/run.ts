@@ -113,6 +113,10 @@ async function main(): Promise<void> {
   let passedAssertions = 0;
   let cleanCases = 0;
   let attemptSum = 0;
+  /** Cases that actually returned a message. A case that errored contributes
+   *  no attempts, so averaging over every case would read low. */
+  let scoredCases = 0;
+  let erroredCases = 0;
   let blockedCount = 0;
   const failedCases: { id: string; problems: Assertion[]; message: string }[] = [];
 
@@ -130,9 +134,11 @@ async function main(): Promise<void> {
       result = await rewrite(model, c.vent, { ...DEFAULTS, ...c.options });
     } catch (err) {
       console.log(`ERROR  ${(err as Error).message}`);
+      erroredCases++;
       continue;
     }
 
+    scoredCases++;
     const assertions = score(c, result);
     const passed = assertions.filter((a) => a.ok).length;
 
@@ -168,8 +174,15 @@ async function main(): Promise<void> {
   console.log(`\n${"─".repeat(52)}`);
   console.log(`cases fully passing   ${cleanCases}/${cases.length}   ${pct(cleanCases, cases.length)}`);
   console.log(`assertions passing    ${passedAssertions}/${totalAssertions}   ${pct(passedAssertions, totalAssertions)}`);
-  console.log(`average attempts      ${(attemptSum / cases.length).toFixed(2)}`);
+  console.log(
+    `average attempts      ${
+      scoredCases ? (attemptSum / scoredCases).toFixed(2) : "n/a"
+    }   (over ${scoredCases} scored)`,
+  );
   console.log(`blocked               ${blockedCount}`);
+  if (erroredCases) {
+    console.log(`errored               ${erroredCases}   (never reached the checks)`);
+  }
 
   if (checkFired.size) {
     console.log(`\nsurviving failures by check:`);

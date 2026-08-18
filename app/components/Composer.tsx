@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatSent } from "@/types";
+import { WORD_CAP } from "@/checks/length";
+import {
+  BLANK_EXACT_RE, BLANK_RE, BLANK_SPLIT_RE,
+  blankKey, countWords, formatSent, hasBlank, MAX_THREAD,
+} from "@/types";
 import type { RewriteResult } from "@/pipeline";
 import type {
   Channel, Firmness, Intent, PriorMessage, Recipient, RewriteOptions,
@@ -9,7 +13,6 @@ import type {
 
 /** Threads live only in the browser — no account, no server state. */
 const THREAD_KEY = "deanx.thread";
-const MAX_THREAD = 6;
 
 function loadThread(): PriorMessage[] {
   if (typeof window === "undefined") return [];
@@ -26,8 +29,6 @@ function loadThread(): PriorMessage[] {
     return [];
   }
 }
-
-const CAP: Record<Channel, number> = { text: 40, chat: 60, email: 100 };
 
 const INTENT_LABELS: [Intent, string][] = [
   ["demand_timeline", "Get a date or timeline"],
@@ -89,17 +90,14 @@ function Message({
    * blank; `fills` stays keyed by name, so filling either still updates both.
    */
   const [editing, setEditing] = useState<number | null>(null);
-  // Must stay in step with BLANK_RE in src/types.ts — models write
-  // "[new date]" as often as "[date]".
-  const parts = text.split(/(\[[a-z][a-z_ -]{0,24}\])/gi);
+  const parts = text.split(BLANK_SPLIT_RE);
 
   return (
     <p className="message">
       {parts.map((part, i) => {
-        const slot = /^\[[a-z][a-z_ -]{0,24}\]$/i.test(part);
-        if (!slot) return <span key={i}>{part}</span>;
+        if (!BLANK_EXACT_RE.test(part)) return <span key={i}>{part}</span>;
 
-        const key = part.slice(1, -1).toLowerCase();
+        const key = blankKey(part);
         const filled = fills[key];
 
         if (editing === i) {
@@ -206,16 +204,13 @@ export function Composer() {
 
   const plain = useCallback(() => {
     if (!result) return "";
-    return result.message.replace(
-      /\[([a-z][a-z_ -]{0,24})\]/gi,
-      (m, k: string) => fills[k.toLowerCase()] || m,
-    );
+    return result.message.replace(BLANK_RE, (m) => fills[blankKey(m)] || m);
   }, [result, fills]);
 
   const copy = useCallback(async () => {
     const out = plain();
     try { await navigator.clipboard.writeText(out); } catch { /* clipboard blocked */ }
-    return /\[[a-z][a-z_ -]{0,24}\]/i.test(out);
+    return hasBlank(out);
   }, [plain]);
 
   /** Copy, remember it as sent, and clear the desk for the follow-up. */
@@ -259,12 +254,10 @@ export function Composer() {
     void run({ includeRisks });
   };
 
-  const words = result ? result.message.trim().split(/\s+/).length : 0;
-  const cap = CAP[options.channel];
+  const words = result ? countWords(result.message) : 0;
+  const cap = WORD_CAP[options.channel];
   const cut = result?.extraction.riskItems.filter((r) => r.kind === "insult") ?? [];
-  const kept = result
-    ? Object.values(result.extraction.entities).flat().concat(result.extraction.entities.counts)
-    : [];
+  const kept = result ? Object.values(result.extraction.entities).flat() : [];
 
   return (
     <>
@@ -317,7 +310,7 @@ export function Composer() {
                 </>
               ) : null}
               <span className="vcount">
-                {vent.trim() ? `${vent.trim().split(/\s+/).length} words in` : ""}
+                {vent.trim() ? `${countWords(vent)} words in` : ""}
               </span>
             </div>
 
@@ -385,7 +378,7 @@ export function Composer() {
               disabled={busy}
               onClick={() => void run()}
             >
-              {busy ? "Cooling it down…" : result ? "Rewrite it" : "Rewrite it"}
+              {busy ? "Cooling it down…" : "Rewrite it"}
               <span className="bar" />
             </button>
 
@@ -480,10 +473,10 @@ export function Composer() {
                   </div>
                   <p className="held-why">{r.note}</p>
                   <div className="held-btns">
-                    <button className="mini" type="button" disabled={busy} onClick={() => toggleRisk(r.quote, true)}>
+                    <button className="mini" type="button" aria-pressed={false} disabled={busy} onClick={() => toggleRisk(r.quote, true)}>
                       Put it in
                     </button>
-                    <button className="mini on" type="button" disabled={busy}>
+                    <button className="mini on" type="button" aria-pressed={true} disabled={busy}>
                       Keep it out
                     </button>
                   </div>
@@ -497,10 +490,10 @@ export function Composer() {
                     <span className="held-q">&ldquo;{quote}&rdquo; is in the message.</span>
                   </div>
                   <div className="held-btns">
-                    <button className="mini on" type="button" disabled={busy}>
+                    <button className="mini on" type="button" aria-pressed={true} disabled={busy}>
                       Put it in
                     </button>
-                    <button className="mini" type="button" disabled={busy} onClick={() => toggleRisk(quote, false)}>
+                    <button className="mini" type="button" aria-pressed={false} disabled={busy} onClick={() => toggleRisk(quote, false)}>
                       Keep it out
                     </button>
                   </div>
