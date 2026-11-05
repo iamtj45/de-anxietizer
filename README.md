@@ -1,6 +1,10 @@
 # The De-Anxietizer
 
 Live link: https://de-anxietizer.vercel.app/
+
+
+
+
 Turns a raw, angry draft into a message you can actually send — without
 inventing facts, and without quietly giving away your position.
 
